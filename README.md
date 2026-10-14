@@ -1,114 +1,21 @@
-# Local AI Data Analyst
+# Local AI Data Analyst — initial agent package
 
-A lightweight, fully local AI-powered data analytics agent built with **Python, LangGraph, Ollama, and PostgreSQL**.
+This is the first implementation increment. It requires an Ollama server and an existing PostgreSQL database; Docker and synthetic seed data are not yet included.
 
-The project aims to develop an autonomous analytical assistant capable of understanding natural-language requests, exploring database schemas, generating and executing SQL queries, analyzing results, and providing meaningful insights.
+## Setup (Windows PowerShell)
 
-The system is designed to run on a standard Windows PC with **16 GB RAM**, without relying on external LLM APIs.
-
-## Key Features
-
-- **Local LLM inference** — Run quantized language models through Ollama without sending data to external AI services.
-- **Natural Language to SQL** — Translate analytical questions into executable SQL queries.
-- **Database Integration** — Connect to PostgreSQL, with an extensible architecture for additional databases such as Vertica.
-- **Agentic Workflows** — Use LangGraph to coordinate multi-step analytical tasks, tool execution, and error handling.
-- **Skills-Based Architecture** — Define reusable analytical instructions, business rules, and domain-specific workflows.
-- **Data Analysis** — Process query results using Python and pandas.
-- **SQL Safety** — Restrict database operations to authorized, read-only queries.
-- **Reproducible Environment** — Automate installation, configuration, database initialization, and testing.
-
-## Technology Stack
-
-| Component | Technology |
-|---|---|
-| Programming Language | Python |
-| Local LLM | Qwen3 4B (4-bit quantized) |
-| Model Runtime | Ollama |
-| Agent Framework | LangGraph |
-| Database | PostgreSQL |
-| Data Processing | pandas |
-| Database Connectivity | SQLAlchemy |
-| Containerization | Docker Compose |
-| Testing | pytest |
-| Operating System | Windows |
-
-## System Architecture
-
-```text
-                  User
-                   |
-                   v
-          Natural Language Query
-                   |
-                   v
-             LangGraph Agent
-                   |
-             Local LLM (Ollama)
-                   |
-         +---------+----------+
-         |         |          |
-         v         v          v
-       Skills   Database    Python
-                 Tools       Tools
-         |         |          |
-         +---------+----------+
-                   |
-                   v
-           SQL Validation
-                   |
-                   v
-             PostgreSQL
-                   |
-                   v
-           Query Results
-                   |
-                   v
-         Analysis & Reporting
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[test]"
+Copy-Item .env.example .env
+ollama pull qwen3:4b
+.\.venv\Scripts\python.exe -m agent.cli
 ```
 
-## Project Structure
+Configure `DATABASE_URL` in `.env` before running. Use a PostgreSQL account with **SELECT-only permissions**. The default credentials are placeholders for a future local test database, not production credentials.
 
-```text
-local-ai-data-analyst/
-├── agent/                  # Agent logic and tool orchestration
-├── skills/                 # Domain-specific analytical skills
-├── database/               # Database schema and synthetic data
-├── metadata/               # Database metadata and metric definitions
-├── tests/                  # Unit and integration tests
-├── scripts/                # Setup and startup scripts
-├── .github/workflows/      # CI workflows
-├── docker-compose.yml      # PostgreSQL container configuration
-├── pyproject.toml          # Python dependencies
-├── .env.example            # Environment configuration template
-└── README.md
-```
+Run tests with `.\.venv\Scripts\python.exe -m pytest`.
 
-## Synthetic Test Database
+## Security limitations
 
-The project includes a simulated consumer lending database for developing and evaluating the agent.
-
-Planned tables:
-
-| Table | Description |
-
-
-The dataset will contain synthetic records, allowing safe experimentation with realistic credit risk scenarios.
-
-## Example Analytical Tasks
-
-The agent is intended to support questions such as:
-
-- "Calculate the average amount by month."
-- "Show the distribution of approved applications by PD bucket."
-- "Compare delinquency rates across customer segments."
-- "Check the dataset for missing values and duplicates."
-
-The agent should generate SQL, execute authorized queries, validate results, and explain its findings.
-
-## Getting Started
-
-### Prerequisites
-
-- Windows 10/11
-- At least 16 GB RAM recommended
--
+This is a prototype, not a hardened SQL sandbox. The validator blocks common write operations and disallows unapproved SQL functions, but a dedicated read-only database role, schema allowlisting at the database layer, network restrictions, and integration tests are mandatory before connecting sensitive data. Query results may be truncated to `MAX_QUERY_ROWS`.
