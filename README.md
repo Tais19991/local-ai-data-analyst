@@ -16,12 +16,11 @@ It uses **Qwen3.5:9b** to inspect database schemas, generate SQL, run read-only 
 
 ## Quick start
 
-Run these commands in **PowerShell**, from the repository root unless noted.
+Run these commands from the repository root unless noted.
 
 ### 1. Get the code and prepare Python
 
 ```powershell
-# Skip the clone step if you already have the project locally.
 git clone https://github.com/Tais19991/local-ai-data-analyst.git
 cd local-ai-data-analyst
 
@@ -39,7 +38,8 @@ ollama pull qwen3.5:9b
 ollama list
 ```
 
-Optional interactive test: `ollama run qwen3.5:9b` (exit with `/bye`). Ollama normally serves its local API at `http://localhost:11434`.
+Optional interactive test: `ollama run qwen3.5:9b` - ask questions - exit with `/bye`. 
+Ollama normally serves its local API at `http://localhost:11434`.
 
 ### 3. Start PostgreSQL and load Titanic data
 
@@ -51,7 +51,8 @@ python database/load_titanic.py
 
 Expected loader output: `Loaded 891 passengers`.
 
-> The SQL scripts in `database/sql/` are applied automatically **only when the PostgreSQL data volume is first initialized**. The loader requires an internet connection to fetch the sample CSV unless you've cached it locally.
+> The SQL scripts in `database/sql/` are applied automatically **only when the PostgreSQL data volume is first initialized**. 
+> The loader requires an internet connection to fetch the sample CSV unless you've cached it locally.
 
 ### 4. Create a read-only database account
 
@@ -85,7 +86,8 @@ OLLAMA_BASE_URL=http://localhost:11434
 DATABASE_URL=postgresql+psycopg://ai_reader:local_reader_password@localhost:5432/titanic_db
 ```
 
-The database URL must match the credentials and port in your `docker-compose.yml`. **Never commit `.env` to Git.** The credentials above are for local development only.
+The database URL must match the credentials and port in your `docker-compose.yml`. 
+The credentials above are for local development only.
 
 ### 6. Verify the connection and run the agent
 
@@ -107,7 +109,6 @@ For the standard 891-passenger Titanic dataset, expected results are:
 | Second | 47.28% |
 | Third | 24.24% |
 
-You can also ask: *What was the average age of passengers who survived?*
 
 ## Project layout
 
@@ -134,6 +135,8 @@ requirements.txt
 
 ## Security and limitations
 
-This is a **development prototype**, not a secure SQL sandbox. The agent should connect with the **read-only `ai_reader` role**. A basic `SELECT` prefix check is not sufficient SQL validation; robust query parsing, timeouts, resource limits, access controls, and tests are needed before using sensitive or production data. Current query results are capped at 100 rows in `agent/db.py`.
+This is a **development prototype**, not a secure SQL sandbox. The agent should connect with the **read-only `ai_reader` role**. 
+A basic `SELECT` prefix check is not sufficient SQL validation; robust query parsing, timeouts, resource limits, access controls, 
+and tests are needed before using sensitive or production data. Current query results are capped at 100 rows in `agent/db.py`.
 
 **Next:** Add SQL execution tracing, stronger query safeguards, and conversational memory.
