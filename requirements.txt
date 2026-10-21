@@ -1,0 +1,12 @@
+# Database
+sqlalchemy>=2.0,<3.0
+psycopg[binary]>=3.2,<4.0
+pandas>=2.2,<3.0
+
+# Configuration
+python-dotenv>=1.0,<2.0
+
+# Local LLM and agent framework
+langchain-core>=1.0,<2.0
+langchain-ollama
+langgraph

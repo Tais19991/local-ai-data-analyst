@@ -1,0 +1,23 @@
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: local-ai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: analyst
+      POSTGRES_PASSWORD: analyst_dev_password
+      POSTGRES_DB: titanic_db
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analyst -d titanic_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

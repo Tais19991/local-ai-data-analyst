@@ -1,0 +1,79 @@
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+build/
+dist/
+
+# =========================
+# Virtual environments
+# =========================
+.venv/
+venv/
+env/
+
+# =========================
+# Environment variables / secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# PyCharm / IDE
+# =========================
+.idea/
+.vscode/
+
+# =========================
+# Testing and tooling
+# =========================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# =========================
+# Logs and temporary files
+# =========================
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+
+# =========================
+# Local databases
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+
+# =========================
+# Local datasets
+# =========================
+data/raw/
+data/processed/
+database/data/
+
+# =========================
+# Local AI models / weights
+# =========================
+*.gguf
+*.safetensors
+*.bin
+models/
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini

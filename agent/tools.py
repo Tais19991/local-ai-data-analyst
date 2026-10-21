@@ -1,28 +1,66 @@
-"""Strict SQL gate for the initial PostgreSQL-only MVP."""
-import sqlglot
-from sqlglot import exp
+from langchain_core.tools import tool
+from sqlalchemy.exc import SQLAlchemyError
+
+from agent.db import (
+    list_tables,
+    describe_table,
+    execute_sql,
+)
 
 
-def validate_sql(sql: str) -> str:
-    if not isinstance(sql, str) or not sql.strip():
-        raise ValueError("SQL must be non-empty")
-    statements = sqlglot.parse(sql, read="postgres")
-    if len(statements) != 1 or statements[0] is None:
-        raise ValueError("Exactly one SQL statement is allowed")
-    root = statements[0]
-    if not isinstance(root, (exp.Select, exp.Union)):
-        raise ValueError("Only SELECT queries are permitted")
-    forbidden = (exp.Insert, exp.Update, exp.Delete, exp.Drop, exp.Create, exp.Alter,
-                 exp.Command, exp.Copy, exp.Merge, exp.Truncate, exp.Into)
-    if any(root.find(t) is not None for t in forbidden):
-        raise ValueError("SQL contains a prohibited operation")
-    # Disallow calls to arbitrary DB functions (including side-effect functions).
-    # An allowlist can be expanded after testing.
-    allowed_functions = {"COUNT", "SUM", "AVG", "MIN", "MAX", "ROUND", "COALESCE", "DATE_TRUNC", "ABS"}
-    for fn in root.find_all(exp.Func):
-        if fn.sql_name().upper() not in allowed_functions:
-            raise ValueError(f"Function not allowed: {fn.sql_name()}")
-    for table in root.find_all(exp.Table):
-        if table.db and table.db.lower() != "public":
-            raise ValueError("Only public schema is permitted")
-    return root.sql(dialect="postgres")
+@tool
+def get_database_tables() -> list[str]:
+    """
+    List available tables in the Titanic database.
+
+    Use this tool first when you need to discover
+    which tables are available for SQL queries.
+    """
+    return list_tables()
+
+
+@tool
+def get_table_schema(table_name: str) -> list[dict]:
+    """
+    Get column names, data types, and nullability
+    for a table in the Titanic schema.
+
+    Args:
+        table_name: Table name without schema prefix,
+                    for example 'passengers'.
+    """
+    return describe_table(table_name)
+
+
+@tool
+def run_sql_query(query: str) -> dict:
+    """
+    Execute a read-only PostgreSQL SELECT query.
+
+    If execution fails, inspect the returned error
+    and correct the SQL before trying again.
+
+    Args:
+        query: PostgreSQL SELECT query.
+    """
+    try:
+        rows = execute_sql(query)
+
+        return {
+            "success": True,
+            "rows": rows,
+        }
+
+    except (SQLAlchemyError, ValueError) as error:
+        return {
+            "success": False,
+            "error": str(error),
+            "query": query,
+        }
+
+
+DATABASE_TOOLS = [
+    get_database_tables,
+    get_table_schema,
+    run_sql_query,
+]

@@ -1,30 +1,69 @@
-"""LangGraph tool-calling agent."""
+import os
+from dotenv import load_dotenv
+from langchain_core.messages import SystemMessage
 from langchain_ollama import ChatOllama
-from langchain_core.tools import tool
-from langgraph.prebuilt import create_react_agent
-from .config import Settings
-from .db import Database
-from .prompts import SYSTEM_PROMPT
+from langgraph.graph import StateGraph, START, END, MessagesState
+from langgraph.prebuilt import ToolNode, tools_condition
+from agent.tools import DATABASE_TOOLS
+load_dotenv()
+
+SYSTEM_PROMPT = """
+You are a local AI data analyst working with PostgreSQL.
+
+Your responsibilities:
+- Answer analytical questions using actual database data.
+- Discover tables and inspect their schemas before writing SQL.
+- Use PostgreSQL syntax.
+- Use only SELECT queries.
+- Never modify database data or schema.
+- Do not invent query results.
+- If a query fails, inspect the error and correct it.
+- Explain the final results clearly and concisely.
+- For percentages, prefer ROUND(AVG(column::numeric) * 100, 2).
+- PostgreSQL ROUND(value, decimals) requires NUMERIC, not DOUBLE PRECISION.
+- If a SQL tool returns success=False, inspect the error and retry
+  with corrected SQL.
+- Never report a failed query as a successful result.
+- Limit SQL correction attempts to 3 per user question.
+
+The database contains a schema named titanic.
+"""
 
 
-def build_agent(settings: Settings | None = None):
-    settings = settings or Settings()
-    database = Database(settings)
+def build_graph():
+    model = ChatOllama(
+        model=os.getenv("OLLAMA_MODEL", "qwen3.5:9b"),
+        base_url=os.getenv(
+            "OLLAMA_BASE_URL",
+            "http://localhost:11434",
+        ),
+        temperature=0,
+    )
+    model_with_tools = model.bind_tools(DATABASE_TOOLS)
 
-    @tool
-    def list_tables() -> list[str]:
-        """List permitted tables and views in the PostgreSQL public schema."""
-        return database.list_tables()
+    def agent_node(state: MessagesState):
+        response = model_with_tools.invoke(
+            [
+                SystemMessage(content=SYSTEM_PROMPT),
+                *state["messages"],
+            ]
+        )
+        return {"messages": [response]}
+    graph = StateGraph(MessagesState)
 
-    @tool
-    def describe_table(table: str) -> list[dict]:
-        """Get column names and types for an existing public table or view."""
-        return database.describe_table(table)
+    graph.add_node("agent", agent_node)
+    graph.add_node("tools", ToolNode(DATABASE_TOOLS))
+    graph.add_edge(START, "agent")
+    graph.add_conditional_edges(
+        "agent",
+        tools_condition,
+        {
+            "tools": "tools",
+            "__end__": END,
+        },
+    )
+    graph.add_edge("tools", "agent")
+    return graph.compile()
 
-    @tool
-    def execute_sql(sql: str) -> dict:
-        """Execute a single read-only SELECT query with a row and time limit."""
-        return database.execute_query(sql)
 
-    model = ChatOllama(model=settings.model, base_url=settings.base_url, temperature=0)
-    return create_react_agent(model, [list_tables, describe_table, execute_sql], prompt=SYSTEM_PROMPT)
+agent_graph = build_graph()
